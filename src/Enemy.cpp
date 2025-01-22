@@ -12,15 +12,13 @@ Enemy::Enemy(QColor color, Behaviour *behaviour, QWidget *parent) : Entity(paren
 	speed = 7;
 	x = y = 11;
 
-	phaseTimer = new QTimer(this);
-	phaseTimer->setSingleShot(true);
-	connect(phaseTimer, &QTimer::timeout, this, &Enemy::phaseChanged);
-	phaseChanged();
+	frightenedTimer->setSingleShot(true);
+	connect(frightenedTimer, &QTimer::timeout, this, &Enemy::endFrightened);
 };
 
 void Enemy::paintEvent(QPaintEvent *event) {
 	QPainter painter(this);
-	if (phase == EnemyPhase::FRIGHTENED || phase == EnemyPhase::HOUSE_FRIGHTENED) {
+	if (frightened) {
 		painter.setBrush(QColor("#ffffff"));
 	} else {
 		painter.setBrush(color);
@@ -30,58 +28,37 @@ void Enemy::paintEvent(QPaintEvent *event) {
 }
 
 void Enemy::step(Maze &maze, double deltaTime, Player &player) {
-	if (phase == EnemyPhase::HOUSE || phase == EnemyPhase::HOUSE_FRIGHTENED) {
+	if (housed) {
 		double dy = std::abs(0.6 * (2 * std::fmod(deltaTime * 120 * stepCounter + x * 4044851, 60) / 60 - 1));
 		dy -= 0.3;
 		x = houseX;
 		y = houseY + dy;
 		emit positionChanged();
 	} else {
-		intent = behaviour->getIntent(*this, maze, player);
+		if (stepCounter == 0) {
+			if (intent == Direction::Left) intent = Direction::Right;
+			if (intent == Direction::Right) intent = Direction::Left;
+			if (intent == Direction::Up) intent = Direction::Down;
+			if (intent == Direction::Down) intent = Direction::Up;
+		} else {
+			intent = behaviour->getIntent(*this, maze, player);
+		}
 		Entity::step(maze, deltaTime);
 	}
 	stepCounter++;
 }
 
-void Enemy::phaseChanged() {
-	if ((phase == EnemyPhase::HOUSE
-			&& nextPhase != EnemyPhase::HOUSE
-			&& nextPhase != EnemyPhase::HOUSE_FRIGHTENED)
-		|| (phase == EnemyPhase::HOUSE_FRIGHTENED
-			&& nextPhase != EnemyPhase::HOUSE
-			&& nextPhase != EnemyPhase::HOUSE_FRIGHTENED)
-	) {
-		x = 13.5;
-		y = 11;
+void Enemy::globalModeChanged(bool scatter) {
+	this->scatter = scatter;
+	if (behaviour != baseBehaviour) {
+		delete behaviour;
 	}
-	if (nextPhase == EnemyPhase::FRIGHTENED) {
-		if (behaviour != baseBehaviour) {
-			delete behaviour;
-		}
-		behaviour = new RandomBehaviour();
-	} else if (nextPhase == EnemyPhase::CHASE) {
-		if (behaviour != baseBehaviour) {
-			delete behaviour;
-		}
+	if (!scatter) {
 		behaviour = baseBehaviour;
-	} else if (nextPhase == EnemyPhase::SCATTER) {
-		if (behaviour != baseBehaviour) {
-			delete behaviour;
-		}
-		behaviour = new ScatterBehaviour(0, 0); // TODO
+	} else {
+		behaviour = new ScatterBehaviour(scatterX, scatterY);
 	}
 	stepCounter = 0;
-	phase = nextPhase;
-}
-
-void Enemy::changePhase(double delay, EnemyPhase newPhase) {
-	nextPhase = newPhase;
-	if (delay == 0) {
-		phaseChanged();
-		phaseTimer->stop();
-	} else {
-		phaseTimer->start(delay * 1000);
-	}
 }
 
 void Enemy::setHousePos(double x, double y) {
@@ -89,20 +66,51 @@ void Enemy::setHousePos(double x, double y) {
 	houseY = y;
 }
 
-void Enemy::receivePhaseBroadcast(EnemyPhase newPhase) {
-	if (newPhase == EnemyPhase::SCATTER || newPhase == EnemyPhase::CHASE) {
-		if (phase == EnemyPhase::HOUSE || phase == EnemyPhase::HOUSE_FRIGHTENED) {
-			changePhase(0, EnemyPhase::HOUSE);
-			changePhase(phaseTimer->remainingTime() / 1000.0, newPhase);
-		} else {
-			changePhase(0, newPhase);
+void Enemy::setScatterPos(double x, double y) {
+	scatterX = x;
+	scatterY = y;
+}
+
+void Enemy::beginFrightened() {
+	if (!frightened) {
+		frightened = true;
+		if (behaviour != baseBehaviour) {
+			delete behaviour;
 		}
-	} else if (newPhase == EnemyPhase::FRIGHTENED) {
-		if (phase == EnemyPhase::HOUSE || phase == EnemyPhase::HOUSE_FRIGHTENED) {
-			changePhase(0, EnemyPhase::HOUSE_FRIGHTENED);
-			changePhase(phaseTimer->remainingTime() / 1000.0, newPhase);
-		} else {
-			changePhase(0, newPhase);
-		}
+		behaviour = new RandomBehaviour();
 	}
+	frightenedTimer->start(8 * 1000);
+}
+
+void Enemy::endHoused() {
+	housed = false;
+	x = 13.5;
+	y = 11;
+	dir = Direction::Left;
+	intent = Direction::Left;
+}
+
+void Enemy::endFrightened() {
+	if (behaviour != baseBehaviour) {
+		delete behaviour;
+		behaviour = baseBehaviour;
+	}
+	globalModeChanged(scatter);
+	frightened = false;
+}
+
+void Enemy::consumed() {
+	housed = true;
+	frightened = false;
+	frightenedTimer->stop();
+	QTimer::singleShot(3 * 1000, this, [this](){ endHoused(); });
+	stepCounter = 0;
+	if (behaviour != baseBehaviour) {
+		delete behaviour;
+	}
+	behaviour = scatter ? new ScatterBehaviour(scatterX, scatterY) : baseBehaviour;
+}
+
+bool Enemy::isFrightened() {
+	return frightened;
 }

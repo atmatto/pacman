@@ -41,8 +41,10 @@ void Game::beginRound(Maze *oldMaze) {
 void Game::endRound(bool success, Maze *maze) {
     if (!success) {
         lives--;
+    } else {
+        maze = nullptr;
     }
-    if (lives == -1 || success) {
+    if (lives == -1) {
         emit gameEnded();
     } else {
         emit livesChanged(lives);

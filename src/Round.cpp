@@ -28,44 +28,42 @@ Round::Round(Maze *oldMaze, QWidget *parent) : QWidget(parent) {
 	connect(player, &Player::positionChanged, this, [this](){ maze->repositionEntity(*player); });
 
 	Enemy *red = new Enemy(QColor("#ff0000"), new ChaseBehaviour(), maze);
-	red->setHousePos(13.5, 11);
+	red->setHousePos(13.5, 14);
+	red->setScatterPos(Maze::WIDTH - 2, -2);
 	entities.push_back(red);
 	connect(red, &Enemy::positionChanged, this, [this, red](){ maze->repositionEntity(*red); });
-	connect(this, &Round::phaseBroadcast, red, &Enemy::receivePhaseBroadcast);
-	red->changePhase(0, EnemyPhase::FRIGHTENED);
-
-	/*Enemy *random = new Enemy(QColor("#ababab"), new RandomBehaviour(), maze);
-	entities.push_back(random);
-	connect(random, &Enemy::positionChanged, this, [this, random](){ maze->repositionEntity(*random); });
-	red->changePhase(0, EnemyPhase::CHASE);
-
-	Enemy *scatter = new Enemy(QColor("#35ef35"), new ScatterBehaviour(20, 0), maze);
-	entities.push_back(scatter);
-	connect(scatter, &Enemy::positionChanged, this, [this, scatter](){ maze->repositionEntity(*scatter); });
-	red->changePhase(0, EnemyPhase::CHASE);*/
+	connect(this, &Round::energizerCollected, red, &Enemy::beginFrightened);
+	connect(this, &Round::modeChanged, red, &Enemy::globalModeChanged);
+	QTimer::singleShot(0 * 1000, red, [red](){ red->endHoused(); });
 
 	Enemy *ambush = new Enemy(QColor("#ffb9ff"), new AmbushBehaviour(), maze);
 	ambush->setHousePos(13.5, 14);
+	ambush->setScatterPos(2, -2);
 	entities.push_back(ambush);
 	connect(ambush, &Enemy::positionChanged, this, [this, ambush](){ maze->repositionEntity(*ambush); });
-	connect(this, &Round::phaseBroadcast, ambush, &Enemy::receivePhaseBroadcast);
-	ambush->changePhase(7.5, EnemyPhase::CHASE);
+	connect(this, &Round::energizerCollected, ambush, &Enemy::beginFrightened);
+	connect(this, &Round::modeChanged, ambush, &Enemy::globalModeChanged);
+	QTimer::singleShot(7 * 1000, ambush, [ambush](){ ambush->endHoused(); });
 
 	Enemy *whimsical = new Enemy(QColor("#00ffff"), new WhimsicalBehaviour(red), maze);
 	whimsical->setHousePos(12, 14);
+	whimsical->setScatterPos(Maze::WIDTH, Maze::HEIGHT + 2);
 	entities.push_back(whimsical);
 	connect(whimsical, &Enemy::positionChanged, this, [this, whimsical](){ maze->repositionEntity(*whimsical); });
-	connect(this, &Round::phaseBroadcast, whimsical, &Enemy::receivePhaseBroadcast);
-	whimsical->changePhase(15, EnemyPhase::CHASE);
+	connect(this, &Round::energizerCollected, whimsical, &Enemy::beginFrightened);
+	connect(this, &Round::modeChanged, whimsical, &Enemy::globalModeChanged);
+	QTimer::singleShot(15 * 1000, whimsical, [whimsical](){ whimsical->endHoused(); });
 
 	Enemy *ignorant = new Enemy(QColor("#ffb951"), new IgnorantBehaviour(0, Maze::HEIGHT), maze);
 	ignorant->setHousePos(15, 14);
+	ignorant->setScatterPos(0, Maze::HEIGHT + 2);
 	entities.push_back(ignorant);
 	connect(ignorant, &Enemy::positionChanged, this, [this, ignorant](){ maze->repositionEntity(*ignorant); });
-	connect(this, &Round::phaseBroadcast, ignorant, &Enemy::receivePhaseBroadcast);
-	ignorant->changePhase(25, EnemyPhase::CHASE);
+	connect(this, &Round::energizerCollected, ignorant, &Enemy::beginFrightened);
+	connect(this, &Round::modeChanged, ignorant, &Enemy::globalModeChanged);
+	QTimer::singleShot(25 * 1000, ignorant, [ignorant](){ ignorant->endHoused(); });
 
-	connect(pinger, &QTimer::timeout, this, [this]() {
+	connect(heartbeat, &QTimer::timeout, this, [this]() {
 		for (auto e : entities) {
 			if (auto *m = dynamic_cast<Enemy *>(e)) {
 				emit m->step(*maze, 1/FPS, *player);
@@ -80,46 +78,44 @@ Round::Round(Maze *oldMaze, QWidget *parent) : QWidget(parent) {
 			maze->setCell(x, y, MazeCell::Empty);
 			emit pointsScored(10);
 		} else if (cell == MazeCell::Energizer) {
+			consumptionBonus = 100;
 			maze->setCell(x, y, MazeCell::Empty);
-			broadcastPhase(0, EnemyPhase::FRIGHTENED);
-			broadcastPhase(8, EnemyPhase::CHASE);
-			alternatePhase = EnemyPhase::SCATTER;
-			double alternationTime = 8 + phaseAlternationTimer->remainingTime() / 1000.0;
-			phaseAlternationTimer->start(alternationTime * 1000);
+			scatter = false;
+			emit modeChanged(scatter);
+			modeTimer->start(20 * 1000);
+			emit energizerCollected();
 			emit pointsScored(50);
 		}
 
 		if (!maze->hasConsumables()) {
 			emit roundEnded(true, maze);
 		}
-	});
-	pinger->start(1000 / FPS);
 
-	phaseBroadcastTimer->setSingleShot(true);
-	connect(phaseBroadcastTimer, &QTimer::timeout, this, [this](){
-		emit phaseBroadcast(nextPhase);
-	});
-
-	phaseAlternationTimer->setSingleShot(true);
-	connect(phaseAlternationTimer, &QTimer::timeout, this, [this](){
-		emit phaseBroadcast(alternatePhase);
-		if (alternatePhase == EnemyPhase::SCATTER) {
-			alternatePhase = EnemyPhase::CHASE;
-			phaseAlternationTimer->start(7 * 1000);
-		} else {
-			alternatePhase = EnemyPhase::SCATTER;
-			phaseAlternationTimer->start(20 * 1000);
+		for (auto e : entities) {
+			if (auto *m = dynamic_cast<Enemy *>(e)) {
+				if (std::abs(m->x - x) < 0.7 && std::abs(m->y - y) < 0.7) {
+					if (m->isFrightened()) {
+						m->consumed();
+						emit pointsScored(consumptionBonus);
+						consumptionBonus += 100;
+					} else {
+						emit roundEnded(false, maze);
+					}
+				}
+			}
 		}
 	});
-	phaseAlternationTimer->start(0);
-}
+	heartbeat->start(1000 / FPS);
 
-void Round::broadcastPhase(int delay, EnemyPhase phase) {
-	if (delay == 0) {
-		emit phaseBroadcast(phase);
-		phaseBroadcastTimer->stop();
-	} else {
-		nextPhase = phase;
-		phaseBroadcastTimer->start(delay * 1000);
-	}
+	modeTimer->setSingleShot(true);
+	connect(modeTimer, &QTimer::timeout, this, [this](){
+		scatter = !scatter;
+		if (scatter) {
+			modeTimer->start(7 * 1000);
+		} else {
+			modeTimer->start(20 * 1000);
+		}
+		emit modeChanged(scatter);
+	});
+	modeTimer->start(0);
 }
