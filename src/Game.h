@@ -2,26 +2,34 @@
 
 #include <QWidget>
 #include <QVBoxLayout>
-#include <QKeyEvent>
-#include <vector>
 
-#include "TopBar.h"
-#include "Maze.h"
-#include "BottomBar.h"
-#include "Movable.h"
+class TopBar;
+class BottomBar;
+class Round;
+class Maze;
 
 class Game : public QWidget {
-	Q_OBJECT
-private:
-	TopBar *tbar = new TopBar(this);
-	BottomBar *bbar = new BottomBar(this);
+    Q_OBJECT
 public:
-	Maze *maze = new Maze(this);
-	Player *player = new Player(maze);
-	std::vector<Movable *> movables = {player};
+    explicit Game(QWidget *parent = nullptr);
+signals:
+    void gameEnded();
+    void pointsChanged(int points);
+    void livesChanged(int lives);
+    void highscoreChanged(int highscore);
+    void keyPressed(int key);
+private slots:
+    void addPoints(int points);
+    void beginRound(Maze *oldMaze);
+    void endRound(bool success, Maze *maze);
+private:
+    int points = 0;
+    int lives = 2;
 
-	Game();
-protected:
-	void keyPressEvent(QKeyEvent *event) override;
+    QVBoxLayout *layout;
+
+    TopBar *top = nullptr;
+    BottomBar *bottom = nullptr;
+
+    Round *round = nullptr;
 };
-

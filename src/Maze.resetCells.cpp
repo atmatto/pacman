@@ -418,12 +418,12 @@ void Maze::resetCells() {
 	cells[14][8]  = MazeCell::Empty;
 	cells[14][9]  = MazeCell::Empty;
 	cells[14][10] = MazeCell::Wall;
-	cells[14][11] = MazeCell::Empty;
+	cells[14][11] = MazeCell::Wall;
 	cells[14][12] = MazeCell::Empty;
 	cells[14][13] = MazeCell::Empty;
 	cells[14][14] = MazeCell::Empty;
 	cells[14][15] = MazeCell::Empty;
-	cells[14][16] = MazeCell::Empty;
+	cells[14][16] = MazeCell::Wall;
 	cells[14][17] = MazeCell::Wall;
 	cells[14][18] = MazeCell::Empty;
 	cells[14][19] = MazeCell::Empty;

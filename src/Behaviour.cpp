@@ -2,21 +2,22 @@
 #include <QtDebug>
 #include <cmath>
 
-#include "Game.h"
 #include "Behaviour.h"
-#include "Movable.h"
-#include "Field.h"
+#include "Entity.h"
+#include "Maze.h"
+#include "Player.h"
+#include "DistanceField.h"
 
-Direction RandomBehaviour::getIntent(Game &game, Movable &m) {
-	int x = std::round(m.x), y = std::round(m.y);
-	bool up = !game.maze->cellSolid(x, y - 1) && m.dir != Direction::Down;
-	bool right = !game.maze->cellSolid(x + 1, y) && m.dir != Direction::Left;
-	bool down = !game.maze->cellSolid(x, y + 1) && m.dir != Direction::Up;
-	bool left = !game.maze->cellSolid(x - 1, y) && m.dir != Direction::Right;
+Direction RandomBehaviour::getIntent(Entity &e, Maze &maze, Player &player) {
+	int x = std::round(e.x), y = std::round(e.y);
+	bool up = !maze.cellSolid(x, y - 1) && e.dir != Direction::Down;
+	bool right = !maze.cellSolid(x + 1, y) && e.dir != Direction::Left;
+	bool down = !maze.cellSolid(x, y + 1) && e.dir != Direction::Up;
+	bool left = !maze.cellSolid(x - 1, y) && e.dir != Direction::Right;
 	int choices = up + right + down + left;
 	int chosen = QRandomGenerator::global()->bounded(choices);
 	// qDebug() << chosen << up << right << down << left;
-	// qDebug() << (m.dir == Direction::Up) << (m.dir == Direction::Right) << (m.dir == Direction::Down) << (m.dir == Direction::Left);
+	// qDebug() << (e.dir == Direction::Up) << (e.dir == Direction::Right) << (e.dir == Direction::Down) << (e.dir == Direction::Left);
 	if (up) {
 		if (chosen == 0) return Direction::Up;
 		chosen--;
@@ -37,12 +38,12 @@ Direction RandomBehaviour::getIntent(Game &game, Movable &m) {
 	return Direction::Up;
 }
 
-Direction TargetedBehaviour::getIntent(Game &game, Movable &m, int targetX, int targetY) {
-	auto field = PointField(*game.maze, targetX, targetY);
-	int x = std::round(m.x), y = std::round(m.y);
+Direction TargetedBehaviour::getIntent(Entity &e, Maze &maze, Player &player, int targetX, int targetY) {
+	auto field = DistanceField(maze, targetX, targetY);
+	int x = std::round(e.x), y = std::round(e.y);
 	int min = INT_MAX;
 	Direction mindir = Direction::Up;
-	Direction cur = m.dir;
+	Direction cur = e.dir;
 	if (int d = field.get(x - 1, y); cur != Direction::Right && d < min) {
 		min = d;
 		mindir = Direction::Left;
@@ -62,14 +63,14 @@ Direction TargetedBehaviour::getIntent(Game &game, Movable &m, int targetX, int 
 	return mindir;
 }
 
-Direction ChaseBehaviour::getIntent(Game &game, Movable &m) {
-	return TargetedBehaviour::getIntent(game, m, (int)std::round(game.player->x), (int)std::round(game.player->y));
+Direction ChaseBehaviour::getIntent(Entity &e, Maze &maze, Player &player) {
+	return TargetedBehaviour::getIntent(e, maze, player, (int)std::round(player.x), (int)std::round(player.y));
 }
 
-Direction AmbushBehaviour::getIntent(Game &game, Movable &m) {
-	int x = std::round(game.player->x);
-	int y = std::round(game.player->y);
-	switch (game.player->dir) {
+Direction AmbushBehaviour::getIntent(Entity &e, Maze &maze, Player &player) {
+	int x = std::round(player.x);
+	int y = std::round(player.y);
+	switch (player.dir) {
 		case Direction::Up:
 			y -= 4;
 			break;
@@ -83,28 +84,28 @@ Direction AmbushBehaviour::getIntent(Game &game, Movable &m) {
 			x -= 4;
 			break;
 	}
-	return TargetedBehaviour::getIntent(game, m, x, y);
+	return TargetedBehaviour::getIntent(e, maze, player, x, y);
 }
 
-Direction WhimsicalBehaviour::getIntent(Game &game, Movable &m) {
-	int x = std::round(game.player->x);
-	int y = std::round(game.player->y);
+Direction WhimsicalBehaviour::getIntent(Entity &e, Maze &maze, Player &player) {
+	int x = std::round(player.x);
+	int y = std::round(player.y);
 	int rx = std::round(reference->x);
 	int ry = std::round(reference->y);
 	int dx = x - rx;
 	int dy = y - ry;
-	return TargetedBehaviour::getIntent(game, m, x + dx, y + dy);
+	return TargetedBehaviour::getIntent(e, maze, player, x + dx, y + dy);
 }
 
-Direction ScatterBehaviour::getIntent(Game &game, Movable &m) {
-	return TargetedBehaviour::getIntent(game, m, targetX, targetY);
+Direction ScatterBehaviour::getIntent(Entity &e, Maze &maze, Player &player) {
+	return TargetedBehaviour::getIntent(e, maze, player, targetX, targetY);
 }
 
-Direction IgnorantBehaviour::getIntent(Game &game, Movable &m) {
-	int d = game.player->x * game.player->x + m.x * m.y;
+Direction IgnorantBehaviour::getIntent(Entity &e, Maze &maze, Player &player) {
+	int d = (player.x - e.x) * (player.x - e.x) + (player.y - e.y) * (player.y - e.y);
 	if (d >= treshold * treshold) {
-		return chase.getIntent(game, m);
+		return chase.getIntent(e, maze, player);
 	} else {
-		return scatter.getIntent(game, m);
+		return scatter.getIntent(e, maze, player);
 	}
 }

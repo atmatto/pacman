@@ -1,37 +1,32 @@
 #pragma once
 
 #include <QWidget>
-#include <QTimer>
 
-class Movable;
-class Game;
+#include "MazeCell.h"
 
-enum class MazeCell {
-	Empty,
-	Wall,
-	Dot,
-	Energizer
-};
+class Entity;
 
 class Maze : public QWidget {
 	Q_OBJECT
 public:
-	// Movable *test;
-	Game *game;
+	explicit Maze(const Maze *maze = nullptr, QWidget *parent = nullptr);
 
-	Maze(Game *parent);
-	void resizeEvent(QResizeEvent *event) override;
-	void paintEvent(QPaintEvent *event) override;
+	void resetCells();
 
 	MazeCell cell(int x, int y);
+	void setCell(int x, int y, MazeCell cell);
 	bool cellSolid(int x, int y);
-	void positionMovables(std::vector<Movable *> *movables);
+	bool hasConsumables();
 
 	inline const static int WIDTH = 28;
 	inline const static int HEIGHT = 31;
+public slots:
+	void repositionEntity(Entity &e);
+signals:
+	void entityRepositioningRequired();
+protected:
+	void resizeEvent(QResizeEvent *event) override;
+	void paintEvent(QPaintEvent *event) override;
+private:
 	MazeCell cells[HEIGHT][WIDTH] = {};
-
-	void resetCells();
-private slots:
-	// void update();
 };

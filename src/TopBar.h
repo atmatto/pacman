@@ -2,19 +2,16 @@
 
 #include <QWidget>
 
-#include "ScoreDisplay.h"
+class ValueDisplay;
 
 class TopBar : public QWidget {
 	Q_OBJECT
 public:
-	TopBar(QWidget *parent = nullptr) : QWidget(parent) {
-		// DRAW_STH_PLEASE("TopBar");
-		auto layout = new QHBoxLayout(this);
-		auto score = new ScoreDisplay("Score");
-		layout->addWidget(score);
-		auto high = new ScoreDisplay("Highscore");
-		layout->addWidget(high);
-
-		setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-	}
+	explicit TopBar(QWidget *parent = nullptr);
+signals:
+	void updateScore(int score);
+	void updateHighscore(int highscore);
+private:
+	//ValueDisplay *score;
+	//ValueDisplay *high;
 };

@@ -1,41 +1,43 @@
 #pragma once
 
-class Game;
-class Movable;
-enum class Direction;
+#include "Direction.h"
+
+class Entity;
+class Maze;
+class Player;
 
 struct Behaviour {
-	virtual Direction getIntent(Game &game, Movable &movable) = 0;
+	virtual Direction getIntent(Entity &entity, Maze &maze, Player &player) = 0;
 	virtual ~Behaviour() = default;
 };
 
 struct RandomBehaviour : public Behaviour {
-	Direction getIntent(Game &game, Movable &movable) override;
+	Direction getIntent(Entity &entity, Maze &maze, Player &player) override;
 };
 
 struct TargetedBehaviour : public Behaviour {
 	using Behaviour::getIntent;
-	Direction getIntent(Game &game, Movable &movable, int targetX, int targetY);
+	Direction getIntent(Entity &entity, Maze &maze, Player &player, int targetX, int targetY);
 };
 
 struct ScatterBehaviour : public TargetedBehaviour {
 	int targetX, targetY;
 	ScatterBehaviour(int x, int y) : targetX(x), targetY(y) {}
-	Direction getIntent(Game &game, Movable &movable) override;
+	Direction getIntent(Entity &entity, Maze &maze, Player &player) override;
 };
 
 struct ChaseBehaviour : public TargetedBehaviour {
-	Direction getIntent(Game &game, Movable &movable) override;
+	Direction getIntent(Entity &entity, Maze &maze, Player &player) override;
 };
 
 struct AmbushBehaviour : public TargetedBehaviour {
-	Direction getIntent(Game &game, Movable &movable) override;
+	Direction getIntent(Entity &entity, Maze &maze, Player &player) override;
 };
 
 struct WhimsicalBehaviour : public TargetedBehaviour {
-	Movable *reference;
-	WhimsicalBehaviour(Movable *reference) : reference(reference) {}
-	Direction getIntent(Game &game, Movable &movable) override;
+	Entity *reference;
+	WhimsicalBehaviour(Entity *reference) : reference(reference) {}
+	Direction getIntent(Entity &entity, Maze &maze, Player &player) override;
 };
 
 struct IgnorantBehaviour : public TargetedBehaviour {
@@ -47,5 +49,5 @@ struct IgnorantBehaviour : public TargetedBehaviour {
 	ScatterBehaviour scatter = ScatterBehaviour(targetX, targetY);
 	ChaseBehaviour chase = ChaseBehaviour();
 
-	Direction getIntent(Game &game, Movable &movable) override;
+	Direction getIntent(Entity &entity, Maze &maze, Player &player) override;
 };
