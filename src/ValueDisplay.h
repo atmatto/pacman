@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QLabel>
 
+// A widget displaying a label and a corresponding numerical value.
 class ValueDisplay : public QWidget {
 	Q_OBJECT
 public:

@@ -1,12 +1,15 @@
 #include "Window.h"
 #include "Menu.h"
 #include "Game.h"
+#include "Images.h"
 
 #include <QApplication>
 #include <QKeyEvent>
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
+
+    init_images();
 
     Window window;
     window.show();
@@ -15,10 +18,12 @@ int main(int argc, char *argv[]) {
 }
 
 Window::Window(QWidget *parent) : QWidget(parent) {
-    setFocusPolicy(Qt::StrongFocus);
+    grabKeyboard();
 
     menu = new Menu();
     connect(menu, &Menu::startGame, this, &Window::startGame);
+
+    layout->setContentsMargins(0, 0, 0, 0);
 
     layout->addWidget(menu);
 }

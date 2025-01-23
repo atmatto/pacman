@@ -6,6 +6,7 @@
 class Menu;
 class Game;
 
+// Top-level widget holding either the Menu or the Game.
 class Window : public QWidget {
     Q_OBJECT
 public:

@@ -16,8 +16,6 @@ Direction RandomBehaviour::getIntent(Entity &e, Maze &maze, Player &player) {
 	bool left = !maze.cellSolid(x - 1, y) && e.dir != Direction::Right;
 	int choices = up + right + down + left;
 	int chosen = QRandomGenerator::global()->bounded(choices);
-	// qDebug() << chosen << up << right << down << left;
-	// qDebug() << (e.dir == Direction::Up) << (e.dir == Direction::Right) << (e.dir == Direction::Down) << (e.dir == Direction::Left);
 	if (up) {
 		if (chosen == 0) return Direction::Up;
 		chosen--;
@@ -34,7 +32,6 @@ Direction RandomBehaviour::getIntent(Entity &e, Maze &maze, Player &player) {
 		if (chosen == 0) return Direction::Left;
 		chosen--;
 	}
-	qWarning() << "RandomBehaviour did not choose a direction.";
 	return Direction::Up;
 }
 

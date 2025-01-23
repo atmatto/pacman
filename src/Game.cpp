@@ -8,6 +8,9 @@ Game::Game(QWidget *parent) : QWidget(parent) {
     top = new TopBar();
     connect(this, &Game::pointsChanged, top, &TopBar::updateScore);
     connect(this, &Game::highscoreChanged, top, &TopBar::updateHighscore);
+    connect(this, &Game::setPaused, top, &TopBar::setPaused);
+    connect(top, &TopBar::pauseToggled, this, &Game::togglePaused);
+    connect(top, &TopBar::endGame, this, &Game::gameEnded);
     bottom = new BottomBar();
     connect(this, &Game::livesChanged, bottom, &BottomBar::updateLives);
     emit livesChanged(lives);
@@ -34,6 +37,8 @@ void Game::beginRound(Maze *oldMaze) {
     connect(round, &Round::roundEnded, this, &Game::endRound);
     connect(round, &Round::pointsScored, this, &Game::addPoints);
     connect(this, &Game::keyPressed, round, &Round::keyPressed);
+    connect(round, &Round::pauseChanged, this, &Game::setPaused);
+    connect(this, &Game::togglePaused, round, &Round::togglePaused);
 
     layout->insertWidget(1, round);
 }

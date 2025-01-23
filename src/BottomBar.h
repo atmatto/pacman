@@ -4,6 +4,7 @@
 
 class ValueDisplay;
 
+// In-game bottom bar showing the number of lives left.
 class BottomBar : public QWidget {
 	Q_OBJECT
 public:

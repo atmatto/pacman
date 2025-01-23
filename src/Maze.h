@@ -11,6 +11,7 @@ class Maze : public QWidget {
 public:
 	explicit Maze(const Maze *maze = nullptr, QWidget *parent = nullptr);
 
+	// Fill `cells` with the default values.
 	void resetCells();
 
 	MazeCell cell(int x, int y);

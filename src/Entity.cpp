@@ -7,13 +7,6 @@
 
 Entity::Entity(QWidget *parent) : QWidget(parent) {}
 
-void Entity::paintEvent(QPaintEvent *event) {
-	QPainter painter(this);
-	painter.setBrush(QColor("#ffff00"));
-	painter.setPen(Qt::NoPen);
-	painter.drawEllipse(0, 0, width(), width());
-}
-
 void Entity::step(Maze &maze, double deltaTime) {
 	int cx = std::round(x);
 	int cy = std::round(y);

@@ -8,6 +8,9 @@ class BottomBar;
 class Round;
 class Maze;
 
+// A single game which lasts until all lives are exhausted.
+// Consists of rounds. As a widget, Game serves as the wrapper
+// for top and bottom bars and the maze (Round widget).
 class Game : public QWidget {
     Q_OBJECT
 public:
@@ -18,6 +21,8 @@ signals:
     void livesChanged(int lives);
     void highscoreChanged(int highscore);
     void keyPressed(int key);
+    void togglePaused();
+    void setPaused(bool paused);
 private slots:
     void addPoints(int points);
     void beginRound(Maze *oldMaze);

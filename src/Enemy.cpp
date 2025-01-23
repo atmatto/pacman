@@ -1,38 +1,55 @@
 #include "Enemy.h"
 #include "Behaviour.h"
+#include "Images.h"
 
 #include <QPainter>
-#include <QTimer>
+#include <QRect>
+#include <QImage>
 #include <cmath>
 
-Enemy::Enemy(QColor color, Behaviour *behaviour, QWidget *parent) : Entity(parent) {
-	this->color = baseColor = color;
+Enemy::Enemy(double housedTime, QImage *image, Behaviour *behaviour, QWidget *parent) : Entity(parent) {
+	this->image = image;
 	this->behaviour = baseBehaviour = behaviour;
 
-	speed = 7;
-	x = y = 11;
+	speed = baseSpeed = 7;
 
-	frightenedTimer->setSingleShot(true);
-	connect(frightenedTimer, &QTimer::timeout, this, &Enemy::endFrightened);
+	connect(housedTimer, &Timer::timeout, this, [this](){ endHoused(); });
+	housedTimer->start(housedTime);
+	connect(frightenedTimer, &Timer::timeout, this, &Enemy::endFrightened);
 };
 
 void Enemy::paintEvent(QPaintEvent *event) {
 	QPainter painter(this);
 	if (frightened) {
-		painter.setBrush(QColor("#ffffff"));
+		double blinkingProgress = (blinkingTime - frightenedTimer->remaining()) / blinkingTime;
+		if (blinkingProgress >= 0 && fmod(blinkingProgress, 0.25) < 0.25 / 2) {
+			painter.drawImage(QRect(0, 0, width(), height()), GHOST_BLINK);
+		} else {
+			painter.drawImage(QRect(0, 0, width(), height()), GHOST_FRIGHTENED);
+		}
 	} else {
-		painter.setBrush(color);
+		painter.drawImage(QRect(0, 0, width(), height()), *image);
 	}
-	painter.setPen(Qt::NoPen);
-	painter.drawEllipse(0, 0, width(), width());
 }
 
 void Enemy::step(Maze &maze, double deltaTime, Player &player) {
 	if (housed) {
 		double dy = std::abs(0.6 * (2 * std::fmod(deltaTime * 120 * stepCounter + x * 4044851, 60) / 60 - 1));
 		dy -= 0.3;
+		if (stepCounter <= 1) {
+			dy = 0;
+		}
 		x = houseX;
 		y = houseY + dy;
+		double dehousingProgress = 2 * (dehousingTime - housedTimer->remaining()) / dehousingTime;
+		if (dehousingProgress > 1) {
+			dehousingProgress--;
+			x = 13.5;
+			y = houseY + (11 - houseY) * dehousingProgress;
+		} else if (dehousingProgress > 0) {
+			x = houseX + (13.5 - houseX) * dehousingProgress;
+			y = houseY;
+		}
 		emit positionChanged();
 	} else {
 		if (stepCounter == 0) {
@@ -79,7 +96,8 @@ void Enemy::beginFrightened() {
 		}
 		behaviour = new RandomBehaviour();
 	}
-	frightenedTimer->start(8 * 1000);
+	frightenedTimer->start(8);
+	speed = baseSpeed / 2;
 }
 
 void Enemy::endHoused() {
@@ -97,13 +115,15 @@ void Enemy::endFrightened() {
 	}
 	globalModeChanged(scatter);
 	frightened = false;
+	speed = baseSpeed;
 }
 
 void Enemy::consumed() {
 	housed = true;
 	frightened = false;
+	speed = baseSpeed;
 	frightenedTimer->stop();
-	QTimer::singleShot(3 * 1000, this, [this](){ endHoused(); });
+	housedTimer->start(3);
 	stepCounter = 0;
 	if (behaviour != baseBehaviour) {
 		delete behaviour;
@@ -113,4 +133,14 @@ void Enemy::consumed() {
 
 bool Enemy::isFrightened() {
 	return frightened;
+}
+
+void Enemy::setPaused(bool paused) {
+	if (paused) {
+		housedTimer->pause();
+		frightenedTimer->pause();
+	} else {
+		housedTimer->resume();
+		frightenedTimer->resume();
+	}
 }

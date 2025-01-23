@@ -1,0 +1,19 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ghost.png</file>
+        <file>frightened.png</file>
+        <file>pacman1.png</file>
+        <file>pacman2.png</file>
+        <file>pacman3.png</file>
+        <file>pacman4.png</file>
+        <file>pacman5.png</file>
+        <file>pacman6.png</file>
+        <file>pacman7.png</file>
+        <file>pacman8.png</file>
+        <file>pacman9.png</file>
+        <file>pacman10.png</file>
+        <file>pacman11.png</file>
+        <file>pacman12.png</file>
+        <file>drawing.png</file>
+    </qresource>
+</RCC>

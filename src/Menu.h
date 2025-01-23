@@ -2,6 +2,7 @@
 
 #include <QWidget>
 
+// Main menu.
 class Menu : public QWidget {
     Q_OBJECT
 public:
