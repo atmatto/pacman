@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir out
+mkdir -p out
 qmake -o out/Makefile && {
 	cd out
 	bear -- make
