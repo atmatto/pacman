@@ -1,6 +1,6 @@
 TEMPLATE = app
 TARGET = pacman
-CONFIG += debug
+# CONFIG += debug
 
 QT += widgets
 
